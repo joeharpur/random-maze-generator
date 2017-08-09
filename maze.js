@@ -7,12 +7,18 @@
     var height;
     var interval_id;
     var cols, rows;
-    var w = 10;
+    var w = 20;
     var grid = [];
-    var start =  false;
+    var begin_solve =  false;
     var draw_speed = 33;
     var current;
     var stack = [];
+    var maze_complete = false;
+    var open_set = [];
+    var closed_set = [];
+    var start;
+    var end;
+    var path =[];
 
     document.addEventListener('DOMContentLoaded', init, false);
     //wait until DOM content is loaded before calling init
@@ -25,16 +31,19 @@
         height = canvas.height;
         setup();
         current = grid[0];
+        start = grid[0];
+        end = grid[grid.length-1];
+        open_set.push(start);
         window.addEventListener('keydown', begin, false);//listen for start button 
         window.addEventListener('keydown', end, false);//listen for finish button
 		clearInterval(interval_id);
-        interval_id = window.setInterval(draw, 33); 
+        interval_id = window.setInterval(draw, draw_speed); 
     }
     
     function draw() {
         //for canvas animation
         current.visited=true;
-        var next = current.checkNeighbours();
+        var next = current.checkNeighboursDraw();
         if (next) {
             next.visited=true;
             if(next.i-current.i===1) {
@@ -53,7 +62,12 @@
             stack.push(current);
             current=next;
         } else {
-            current = stack.pop();
+            if (stack.length>0) {
+                current = stack.pop();
+            } else {
+                maze_complete = true;
+                draw_speed = 100;
+            }
         }
         context.clearRect(0, 0, width, height);//clear grid
         context.strokeStyle = 'black';
@@ -90,6 +104,82 @@
         }
         context.fillStyle='white';
         context.fillRect(current.i*w, current.j*w, w, w);
+
+        if (maze_complete && begin_solve) {
+            if (open_set.length > 0) {
+                var winner = 0;
+                for (var i=0; i<open_set.length; i++) {
+                    if (open_set[i].f < open_set[winner.f]) {
+                        winner = i; 
+                    }
+                }
+                current = open_set[winner];
+                if (current === end) {
+                    var temp = current;
+                    path.push(temp);
+                    while (temp.previous) {
+                        path.push(temp.previous);
+                        temp = temp.previous;
+                    }
+                    console.log('Maze Complete!');
+                }
+                removeFromArray(open_set, current);
+                closed_set.push(current);
+
+                var solveNeighbours = current.checkNeighboursSolve();
+                for (var i=0; i<solveNeighbours.length; i++) {
+                    var neighbour = solveNeighbours[i];
+                    if (!closed_set.includes(neighbour)) {
+                        var temp_g = current.g + 1;
+                        if (open_set.includes(neighbour)) {
+                            if (temp_g < neighbour.g) {
+                                neighbour.g = temp_g;
+                            }
+                        } else {
+                            neighbour.g = temp_g;
+                            open_set.push(neighbour);
+                        }
+
+                        neighbour.h = heuristic(neighbour, end);
+                        neighbour.f = neighbour.g + neighbour.h;
+                        neighbour.previous = current;
+                    }
+                }
+
+            } else {
+                console.log('No Solution');
+            }
+
+            for (var i=0; i < path.length; i++) {
+                context.fillStyle ='white';
+                context.fillRect(path[i].i*w, path[i].j*w, w, w);
+            
+
+                context.beginPath();
+                if (path[i].walls[0]) {
+                    context.moveTo(path[i].i*w, path[i].j*w);
+                    context.lineTo(path[i].i*w+w, path[i].j*w);
+                    context.stroke();
+                }
+                if (path[i].walls[1]) {
+                    context.moveTo(path[i].i*w+w, path[i].j*w);
+                    context.lineTo(path[i].i*w+w, path[i].j*w+w);
+                    context.stroke();
+                }
+                if (path[i].walls[2]) {
+                    context.moveTo(path[i].i*w+w, path[i].j*w+w);
+                    context.lineTo(path[i].i*w, path[i].j*w+w);
+                    context.stroke();
+                }
+                if (path[i].walls[3]) {
+                    context.moveTo(path[i].i*w, path[i].j*w+w);
+                    context.lineTo(path[i].i*w, path[i].j*w);
+                    context.stroke();
+                }
+            }
+            //clearInterval(interval_id);
+
+        }
     }
 
     function setup() {
@@ -109,10 +199,9 @@
         this.j = j;
         this.walls = [true, true, true, true];
         this.visited = false;
-        this.checkNeighbours = function() {
+        this.checkNeighboursDraw = function() {
             var neighbours = [];
             var top = grid[index(i, j-1)];
-            console.log(top);
             var right = grid[index(i+1, j)];
             var bottom = grid[index(i, j+1)];
             var left = grid[index(i-1, j)];
@@ -135,6 +224,33 @@
             }
 
         }
+        this.f = 0;
+        this.g = 0;
+        this.h = 0;
+        this.previous = undefined;
+        this.checkNeighboursSolve = function() {
+            var neighbours = [];
+            var top = grid[index(i, j-1)];
+            var right = grid[index(i+1, j)];
+            var bottom = grid[index(i, j+1)];
+            var left = grid[index(i-1, j)];
+            if (top && !top.walls[2]) {
+                neighbours.push(top);
+            }
+            if (right && !right.walls[3]) {
+                neighbours.push(right);
+            }
+            if (bottom && !bottom.walls[0]) {
+                neighbours.push(bottom);
+            }
+            if (left && !left.walls[1]) {
+                neighbours.push(left);
+            }
+            if (neighbours.length > 0){
+                return neighbours
+            }
+
+        }
     }
     
     function index(i, j) {
@@ -144,13 +260,26 @@
         return i + j * cols;
     } 
 
+    function removeFromArray(arr, item) {
+        for (var i = arr.length-1; i >= 0; i--) {
+            if (arr[i]===item) {
+                arr.splice(i, 1);
+            }
+        }
+    }
 
+    function heuristic(a, b) {
+        var i = a.i - b.i;
+        var j = a.j - b.j;
+        var d = Math.sqrt(a*a + b*b);
+        return d;
+    }
 
     function begin(event) {
         //If spacebar is pressed, start = true
         var keyCode = event.keyCode;
         if (keyCode === 32) {
-            start = true;
+            begin_solve = true;
         }   
     }
 
@@ -158,7 +287,7 @@
         //If esc is pressed, start = false
         var keyCode = event.keyCode;
         if (keyCode === 27) {
-            start = false;
+            begin_solve = false;
         }   
     }
 
