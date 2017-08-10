@@ -3,14 +3,14 @@
     //initialise variables 
     var canvas;
     var context;
-    var width;
+    var width;//width of canvas
     var height;
     var interval_id;
     var cols, rows;
-    var w = 20;
+    var w = 20;//width of cell
     var grid = [];
     var begin_solve =  false;
-    var draw_speed = 33;
+    var draw_speed = 60;
     var current;
     var stack = [];
     var maze_complete = false;
@@ -24,7 +24,6 @@
     //wait until DOM content is loaded before calling init
 
     function init() {    
-        //define variables
         canvas = document.querySelector('canvas');
         context = canvas.getContext('2d');
         width = canvas.width;
@@ -74,7 +73,7 @@
             } else {
                 //maze generation is completed
                 maze_complete = true;
-                draw_speed = 100;
+                draw_speed = 120;
             }
         }
         context.clearRect(0, 0, width, height);//clear grid
@@ -110,49 +109,64 @@
             }
             
         }
-        //current cell
 
         if (maze_complete && begin_solve) {
             //maze generated, hit spacebar to begin solve
             if (open_set.length > 0) {
-                //open_set contains viable cell options to reach goal
+                //open_set contains cells that need to be checked
                 var winner = 0;
-                //winner is cell in open_set which is closest to the goal
+                //winner is cell in open_set which has less cost in reaching goal
                 //determined by f(n) = g(n) + h(n)
+                //f(n) = cost to reach cell from start + heuristics
                 for (var i=0; i<open_set.length; i++) {
                     if (open_set[i].f < open_set[winner.f]) {
-                        winner = i; 
+                        winner = i;
+                        //if cell in open set is less costly than current best,
+                        //make it the current best
                     }
                 }
                 current = open_set[winner];
+                //current cell is less costly cell in open set
                 if (current === end) {
+                    //have we reached the end?
                     console.log('Maze Complete!');
                     clearInterval(interval_id);
                 }
                 removeFromArray(open_set, current);
                 closed_set.push(current);
+                //current has been checked so remove from open set and move to closed set
 
                 var solveNeighbours = current.checkNeighboursSolve();
+                //returns list of available neighbour cells from current cell
                 for (var i=0; i<solveNeighbours.length; i++) {
                     var neighbour = solveNeighbours[i];
                     if (!closed_set.includes(neighbour)) {
-                        var temp_g = current.g + 1;
+                        //if neighbour has not been checked
+                        var temp_g = current.g + 1;//assign a temporary travel cost
                         if (open_set.includes(neighbour)) {
+                            //neighbour needs to be checked
                             if (temp_g < neighbour.g) {
                                 neighbour.g = temp_g;
+                                //assign total travel cost to neighbour
                             }
                         } else {
                             neighbour.g = temp_g;
+                            //assign total travel cost to neighbour
                             open_set.push(neighbour);
+                            //push neighbour to open set
                         }
 
                         neighbour.h = heuristic(neighbour, end);
+                        //estimate distance from neighbour to end 
                         neighbour.f = neighbour.g + neighbour.h;
+                        //assign best guess at total travel cost to end
                         neighbour.previous = current;
+                        //assign parent cell to neighbour
                     }
                 }
 
             } else {
+                //open set is empty and end not reached
                 console.log('No Solution');
             }
 
@@ -191,15 +205,16 @@
                     context.stroke();
                 }
             }
-            //clearInterval(interval_id);
 
         } else {
+            //draw current cell
             context.fillStyle='white';
             context.fillRect(current.i*w, current.j*w, w, w);
         }
     }
 
     function setup() {
+        //populate grid with cell objects
         cols = Math.floor(width/w);
         rows = Math.floor(height/w);
         for (var j=0; j<rows; j++) {
@@ -214,7 +229,7 @@
     function Cell(i, j) {
         this.i = i;
         this.j = j;
-        this.walls = [true, true, true, true];
+        this.walls = [true, true, true, true];//up, down, left, right
         this.visited = false;
         this.checkNeighboursDraw = function() {
             var neighbours = [];
@@ -222,6 +237,8 @@
             var right = grid[index(i+1, j)];
             var bottom = grid[index(i, j+1)];
             var left = grid[index(i-1, j)];
+            //check if neighbour exists (deal with edge cases) and hasn't been visited
+            //push to neighbours array
             if (top && !top.visited) {
                 neighbours.push(top);
             }
@@ -236,16 +253,19 @@
             }
             if (neighbours.length > 0){
                 return neighbours[Math.floor(Math.random()*neighbours.length)]
+                //return random valid naighbour
             } else {
                 return undefined;
+                //no valid neighbours
             }
 
         }
-        this.f = 0;
-        this.g = 0;
-        this.h = 0;
-        this.previous = undefined;
+        this.g = 0;//movement cost
+        this.h = 0;//heiristics
+        this.f = 0;//g+h(educated guess of total cost)
+        this.previous = undefined;//parent cell
         this.checkNeighboursSolve = function() {
+            //check valid neighbours (no walls blocking, not off grid)
             var neighbours = [];
             var top = grid[index(i, j-1)];
             var right = grid[index(i+1, j)];
@@ -271,13 +291,16 @@
     }
     
     function index(i, j) {
+        //index into array to deal with edge cases
         if (i < 0 || i > cols-1 || j < 0 || j > rows-1) {
-            return -1;
+            return -1;//edge case/invalid indexes
         }
-        return i + j * cols;
+        return i + j * cols;//formula to index into 1D array
     } 
 
     function removeFromArray(arr, item) {
+        //remove item from array
+        //loop runs backwards to avoid skipping an element once another is removed
         for (var i = arr.length-1; i >= 0; i--) {
             if (arr[i]===item) {
                 arr.splice(i, 1);
@@ -286,9 +309,13 @@
     }
 
     function heuristic(a, b) {
+        //'Educated guess' at distance left to travel to end
+        //Euclidian distance is optimal if diagonal travel is possible
+        //Manhattan or 'Taxi Cab' distance is optimal is this case
         var i = a.i - b.i;
         var j = a.j - b.j;
-        var d = Math.sqrt(a*a + b*b);
+        // var d = Math.sqrt(a*a + b*b);//euclidian distance
+        var d = Math.abs(i) + Math.abs(j);//manhattan distance
         return d;
     }
 
