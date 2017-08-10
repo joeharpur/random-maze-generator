@@ -10,7 +10,7 @@
     var w = 20;//width of cell
     var grid = [];
     var begin_solve =  false;
-    var draw_speed = 60;
+    var draw_speed = 33;
     var current;
     var stack = [];
     var maze_complete = false;
@@ -33,13 +33,16 @@
         start = grid[0];
         end = grid[grid.length-1];
         open_set.push(start);
-        window.addEventListener('keydown', begin, false);//listen for start button 
+        window.addEventListener('keydown', activate, false);//listen for start button 
         window.addEventListener('keydown', end, false);//listen for finish button
+        window.addEventListener('keyup', deactivate, false);
 		clearInterval(interval_id);
         interval_id = window.setInterval(draw, draw_speed); 
     }
     
     function draw() {
+        context.clearRect(0, 0, width, height);//clear grid
+        context.strokeStyle = 'black';
         current.visited=true;
         var next = current.checkNeighboursDraw();//randomly select next neighbour
         if (next) { //if one exists
@@ -73,11 +76,9 @@
             } else {
                 //maze generation is completed
                 maze_complete = true;
-                draw_speed = 120;
+                //draw_speed = 80;
             }
         }
-        context.clearRect(0, 0, width, height);//clear grid
-        context.strokeStyle = 'black';
         for (var i = 0; i<grid.length; i++) {
             if (grid[i].visited) {
                 context.fillStyle='green';
@@ -110,64 +111,95 @@
             
         }
 
-        if (maze_complete && begin_solve) {
+        if (maze_complete) {
+            if (begin_solve) {
             //maze generated, hit spacebar to begin solve
-            if (open_set.length > 0) {
-                //open_set contains cells that need to be checked
-                var winner = 0;
-                //winner is cell in open_set which has less cost in reaching goal
-                //determined by f(n) = g(n) + h(n)
-                //f(n) = cost to reach cell from start + heuristics
-                for (var i=0; i<open_set.length; i++) {
-                    if (open_set[i].f < open_set[winner.f]) {
-                        winner = i;
-                        //if cell in open set is less costly than current best,
-                        //make it the current best
+                if (open_set.length > 0) {
+                    //open_set contains cells that need to be checked
+                    var winner = 0;
+                    //winner is cell in open_set which has less cost in reaching goal
+                    //determined by f(n) = g(n) + h(n)
+                    //f(n) = cost to reach cell from start + heuristics
+                    for (var i=0; i<open_set.length; i++) {
+                        if (open_set[i].f < open_set[winner.f]) {
+                            winner = i;
+                            //if cell in open set is less costly than current best,
+                            //make it the current best
+                        }
                     }
-                }
-                current = open_set[winner];
-                //current cell is less costly cell in open set
-                if (current === end) {
-                    //have we reached the end?
-                    console.log('Maze Complete!');
-                    clearInterval(interval_id);
-                }
-                removeFromArray(open_set, current);
-                closed_set.push(current);
-                //current has been checked so remove from open set and move to closed set
+                    current = open_set[winner];
+                    //current cell is less costly cell in open set
+                    if (current === end) {
+                        //have we reached the end?
+                        console.log('Maze Complete!');
+                        clearInterval(interval_id);
+                    }
+                    removeFromArray(open_set, current);
+                    closed_set.push(current);
+                    //current has been checked so remove from open set and move to closed set
 
-                var solveNeighbours = current.checkNeighboursSolve();
-                //returns list of available neighbour cells from current cell
-                for (var i=0; i<solveNeighbours.length; i++) {
-                    var neighbour = solveNeighbours[i];
-                    if (!closed_set.includes(neighbour)) {
-                        //if neighbour has not been checked
-                        var temp_g = current.g + 1;//assign a temporary travel cost
-                        if (open_set.includes(neighbour)) {
-                            //neighbour needs to be checked
-                            if (temp_g < neighbour.g) {
+                    var solveNeighbours = current.checkNeighboursSolve();
+                    //returns list of available neighbour cells from current cell
+                    for (var i=0; i<solveNeighbours.length; i++) {
+                        var neighbour = solveNeighbours[i];
+                        if (!closed_set.includes(neighbour)) {
+                            //if neighbour has not been checked
+                            var temp_g = current.g + 1;//assign a temporary travel cost
+                            if (open_set.includes(neighbour)) {
+                                //neighbour needs to be checked
+                                if (temp_g < neighbour.g) {
+                                    neighbour.g = temp_g;
+                                    //assign total travel cost to neighbour
+                                }
+                            } else {
                                 neighbour.g = temp_g;
                                 //assign total travel cost to neighbour
+                                open_set.push(neighbour);
+                                //push neighbour to open set
                             }
-                        } else {
-                            neighbour.g = temp_g;
-                            //assign total travel cost to neighbour
-                            open_set.push(neighbour);
-                            //push neighbour to open set
-                        }
 
-                        neighbour.h = heuristic(neighbour, end);
-                        //estimate distance from neighbour to end 
-                        neighbour.f = neighbour.g + neighbour.h;
-                        //assign best guess at total travel cost to end
-                        neighbour.previous = current;
-                        //assign parent cell to neighbour
+                            neighbour.h = heuristic(neighbour, end);
+                            //estimate distance from neighbour to end 
+                            neighbour.f = neighbour.g + neighbour.h;
+                            //assign best guess at total travel cost to end
+                            neighbour.previous = current;
+                            //assign parent cell to neighbour
+                        }
+                    }
+
+                } else {
+                    //open set is empty and end not reached
+                    console.log('No Solution');
+                }
+            } else {
+                var i = current.i
+                var j = current.j
+                if (current.movement[0] && !current.walls[0]) {
+                    var top = grid[index(i, j-1)];
+                    if (top) {
+                        current = top;
+                    }
+                } else if (current.movement[1] && !current.walls[1]) {
+                    var right = grid[index(i+1, j)];
+                    if (right) {
+                        current = right;
+                    }
+                } else if (current.movement[2] && !current.walls[2]) {
+                    var bottom = grid[index(i, j+1)];
+                    if (bottom) {
+                        current = bottom;
+                    }
+
+                } else if (current.movement[3] && !current.walls[3]) {
+                    var left = grid[index(i-1, j)];
+                    if (left) {
+                        current = left;
                     }
                 }
+                current.movement = [false, false, false, false];
+                context.fillStyle='black';
+                context.fillRect(current.i*w, current.j*w, w, w);
 
-            } else {
-                //open set is empty and end not reached
-                console.log('No Solution');
             }
 
             path = [];
@@ -179,7 +211,7 @@
             }
 
             for (var i=0; i < path.length; i++) {
-                context.fillStyle ='white';
+                context.fillStyle ='blue';
                 context.fillRect(path[i].i*w, path[i].j*w, w, w);
             
 
@@ -208,7 +240,7 @@
 
         } else {
             //draw current cell
-            context.fillStyle='white';
+            context.fillStyle='blue';
             context.fillRect(current.i*w, current.j*w, w, w);
         }
     }
@@ -285,9 +317,12 @@
             }
             if (neighbours.length > 0){
                 return neighbours
+
             }
 
         }
+        this.movement = [false, false, false, false];//up, right, down, up
+        
     }
     
     function index(i, j) {
@@ -319,20 +354,34 @@
         return d;
     }
 
-    function begin(event) {
-        //If spacebar is pressed, start = true
+    function activate(event) {
+        //If key is pressed
         var keyCode = event.keyCode;
         if (keyCode === 32) {
             begin_solve = true;
-        }   
+        } else if (keyCode === 38) {
+            current.movement[0]=true;
+        } else if (keyCode === 39) {
+            current.movement[1]=true;
+        } else if (keyCode === 40) {
+            current.movement[2]=true;
+        } else if (keyCode === 37) {
+            current.movement[3]=true;
+        }
     }
 
-    function end(event) {
-        //If esc is pressed, start = false
+    function deactivate(event) {
+        //If key is released
         var keyCode = event.keyCode;
-        if (keyCode === 27) {
-            begin_solve = false;
-        }   
+        if (keyCode === 38) {
+            current.movement[0]=false;
+        } else if (keyCode === 39) {
+            current.movement[1]=false;
+        } else if (keyCode === 40) {
+            current.movement[2]=false;
+        } else if (keyCode === 37) {
+            current.movement[3]=false;
+        } 
     }
 
      
