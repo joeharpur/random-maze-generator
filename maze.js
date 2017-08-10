@@ -110,8 +110,7 @@
             }
             
         }
-        context.fillStyle='white';
-        context.fillRect(current.i*w, current.j*w, w, w);//current cell
+        //current cell
 
         if (maze_complete && begin_solve) {
             //maze generated, hit spacebar to begin solve
@@ -194,6 +193,9 @@
             }
             //clearInterval(interval_id);
 
+        } else {
+            context.fillStyle='white';
+            context.fillRect(current.i*w, current.j*w, w, w);
         }
     }
 
