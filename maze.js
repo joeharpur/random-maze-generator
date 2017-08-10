@@ -41,30 +41,38 @@
     }
     
     function draw() {
-        //for canvas animation
         current.visited=true;
-        var next = current.checkNeighboursDraw();
-        if (next) {
+        var next = current.checkNeighboursDraw();//randomly select next neighbour
+        if (next) { //if one exists
             next.visited=true;
+            //check which direction neighbour is in
             if(next.i-current.i===1) {
+                //neighbour is right
                 current.walls[1]=false;
                 next.walls[3]=false;
             } else if (next.i-current.i===-1) {
+                //neighbour is left
                 current.walls[3]=false;
                 next.walls[1]=false;
             } else if (next.j-current.j===1) {
+                //neighbor is down
                 current.walls[2]=false;
                 next.walls[0]=false;
             } else if (next.j-current.j===-1) {
+                //neighbour is up
                 current.walls[0]=false;
                 next.walls[2]=false;
             }
             stack.push(current);
             current=next;
+            //push current cell to stack and move to neighbour 
         } else {
+            //if no non-visited neighbours
             if (stack.length>0) {
                 current = stack.pop();
+                //pop off last position and assign to current
             } else {
+                //maze generation is completed
                 maze_complete = true;
                 draw_speed = 100;
             }
@@ -78,8 +86,8 @@
                 context.fillStyle='black'
             }
             context.fillRect(grid[i].i*w, grid[i].j*w, w, w);
-            //context.lineWidth = 1;
             context.beginPath();
+            //draw walls of cell object
             if (grid[i].walls[0]) {
                 context.moveTo(grid[i].i*w, grid[i].j*w);
                 context.lineTo(grid[i].i*w+w, grid[i].j*w);
@@ -103,11 +111,15 @@
             
         }
         context.fillStyle='white';
-        context.fillRect(current.i*w, current.j*w, w, w);
+        context.fillRect(current.i*w, current.j*w, w, w);//current cell
 
         if (maze_complete && begin_solve) {
+            //maze generated, hit spacebar to begin solve
             if (open_set.length > 0) {
+                //open_set contains viable cell options to reach goal
                 var winner = 0;
+                //winner is cell in open_set which is closest to the goal
+                //determined by f(n) = g(n) + h(n)
                 for (var i=0; i<open_set.length; i++) {
                     if (open_set[i].f < open_set[winner.f]) {
                         winner = i; 
@@ -115,13 +127,8 @@
                 }
                 current = open_set[winner];
                 if (current === end) {
-                    var temp = current;
-                    path.push(temp);
-                    while (temp.previous) {
-                        path.push(temp.previous);
-                        temp = temp.previous;
-                    }
                     console.log('Maze Complete!');
+                    clearInterval(interval_id);
                 }
                 removeFromArray(open_set, current);
                 closed_set.push(current);
@@ -148,6 +155,14 @@
 
             } else {
                 console.log('No Solution');
+            }
+
+            path = [];
+            var temp = current;
+            path.push(temp);
+            while (temp.previous) {
+                path.push(temp.previous);
+                temp = temp.previous;
             }
 
             for (var i=0; i < path.length; i++) {
