@@ -11,7 +11,7 @@ canvas {
     border: 1px solid black;
 }
 
-h1, p:first-of-type {
+h1, p {
 	text-align: center;
 }
 
