@@ -7,7 +7,7 @@
     var height;
     var interval_id;
     var cols, rows;
-    var w = 20;//width of cell
+    var w =20;//width of cell
     var grid = [];
     var begin_solve =  false;
     var draw_speed = 33;
@@ -75,6 +75,21 @@
                 //pop off last position and assign to current
             } else {
                 //maze generation is completed
+                var middle_index = Math.floor(grid.length/2) + Math.floor(cols/2);
+                var middle = grid[middle_index];
+                var i = middle.i;
+                var j = middle.j;
+                var top = grid[index(i, j-1)];
+                var right = grid[index(i+1, j)];
+                var bottom = grid[index(i, j+1)];
+                var left = grid[index(i-1, j)];
+                middle.walls = [false, false, false, false];
+                top.walls[2] = false;
+                right.walls[3] = false;
+                bottom.walls[0] = false;
+                left.walls[1]= false;
+                //remove all walls of centre square to add variety
+
                 maze_complete = true;
                 //draw_speed = 80;
             }
