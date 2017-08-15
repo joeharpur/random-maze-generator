@@ -7,7 +7,7 @@
     var height;
     var interval_id;
     var cols, rows;
-    var w =20;//width of cell
+    var w =10;//width of cell
     var grid = [];
     var begin_solve =  false;
     var draw_speed = 33;
@@ -129,63 +129,7 @@
         if (maze_complete) {
             if (begin_solve) {
             //maze generated, hit spacebar to begin solve
-                if (open_set.length > 0) {
-                    //open_set contains cells that need to be checked
-                    var winner = 0;
-                    //winner is cell in open_set which has less cost in reaching goal
-                    //determined by f(n) = g(n) + h(n)
-                    //f(n) = cost to reach cell from start + heuristics
-                    for (var i=0; i<open_set.length; i++) {
-                        if (open_set[i].f < open_set[winner.f]) {
-                            winner = i;
-                            //if cell in open set is less costly than current best,
-                            //make it the current best
-                        }
-                    }
-                    current = open_set[winner];
-                    //current cell is less costly cell in open set
-                    if (current === end) {
-                        //have we reached the end?
-                        console.log('Maze Complete!');
-                        clearInterval(interval_id);
-                    }
-                    removeFromArray(open_set, current);
-                    closed_set.push(current);
-                    //current has been checked so remove from open set and move to closed set
-
-                    var solveNeighbours = current.checkNeighboursSolve();
-                    //returns list of available neighbour cells from current cell
-                    for (var i=0; i<solveNeighbours.length; i++) {
-                        var neighbour = solveNeighbours[i];
-                        if (!closed_set.includes(neighbour)) {
-                            //if neighbour has not been checked
-                            var temp_g = current.g + 1;//assign a temporary travel cost
-                            if (open_set.includes(neighbour)) {
-                                //neighbour needs to be checked
-                                if (temp_g < neighbour.g) {
-                                    neighbour.g = temp_g;
-                                    //assign total travel cost to neighbour
-                                }
-                            } else {
-                                neighbour.g = temp_g;
-                                //assign total travel cost to neighbour
-                                open_set.push(neighbour);
-                                //push neighbour to open set
-                            }
-
-                            neighbour.h = heuristic(neighbour, end);
-                            //estimate distance from neighbour to end 
-                            neighbour.f = neighbour.g + neighbour.h;
-                            //assign best guess at total travel cost to end
-                            neighbour.previous = current;
-                            //assign parent cell to neighbour
-                        }
-                    }
-
-                } else {
-                    //open set is empty and end not reached
-                    console.log('No Solution');
-                }
+                Solve();   
             } else {
                 var i = current.i
                 var j = current.j
@@ -269,6 +213,66 @@
                 var cell = new Cell(i, j);
                 grid.push(cell);
             }
+        }
+    }
+
+    function Solve() {
+        if (open_set.length > 0) {
+            //open_set contains cells that need to be checked
+            var winner = 0;
+            //winner is cell in open_set which has less cost in reaching goal
+            //determined by f(n) = g(n) + h(n)
+            //f(n) = cost to reach cell from start + heuristics
+            for (var i=0; i<open_set.length; i++) {
+                if (open_set[i].f < open_set[winner.f]) {
+                    winner = i;
+                    //if cell in open set is less costly than current best,
+                    //make it the current best
+                }
+            }
+            current = open_set[winner];
+            //current cell is less costly cell in open set
+            if (current === end) {
+                //have we reached the end?
+                console.log('Maze Complete!');
+                clearInterval(interval_id);
+            }
+            removeFromArray(open_set, current);
+            closed_set.push(current);
+            //current has been checked so remove from open set and move to closed set
+
+            var solveNeighbours = current.checkNeighboursSolve();
+            //returns list of available neighbour cells from current cell
+            for (var i=0; i<solveNeighbours.length; i++) {
+                var neighbour = solveNeighbours[i];
+                if (!closed_set.includes(neighbour)) {
+                    //if neighbour has not been checked
+                    var temp_g = current.g + 1;//assign a temporary travel cost
+                    if (open_set.includes(neighbour)) {
+                        //neighbour needs to be checked
+                        if (temp_g < neighbour.g) {
+                            neighbour.g = temp_g;
+                            //assign total travel cost to neighbour
+                        }
+                    } else {
+                        neighbour.g = temp_g;
+                        //assign total travel cost to neighbour
+                        open_set.push(neighbour);
+                        //push neighbour to open set
+                    }
+
+                    neighbour.h = heuristic(neighbour, end);
+                    //estimate distance from neighbour to end 
+                    neighbour.f = neighbour.g + neighbour.h;
+                    //assign best guess at total travel cost to end
+                    neighbour.previous = current;
+                    //assign parent cell to neighbour
+                }
+            }
+
+        } else {
+            //open set is empty and end not reached
+            console.log('No Solution');
         }
     }
 
