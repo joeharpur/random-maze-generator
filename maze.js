@@ -7,7 +7,7 @@
     var height;
     var interval_id;
     var cols, rows;
-    var w =10;//width of cell
+    var w =20;//width of cell
     var grid = [];
     var begin_solve =  false;
     var draw_speed = 33;
@@ -129,72 +129,11 @@
         if (maze_complete) {
             if (begin_solve) {
             //maze generated, hit spacebar to begin solve
-                Solve();   
+                solve();
+                create_path();
+                draw_path();  
             } else {
-                var i = current.i
-                var j = current.j
-                if (current.movement[0] && !current.walls[0]) {
-                    var top = grid[index(i, j-1)];
-                    if (top) {
-                        current = top;
-                    }
-                } else if (current.movement[1] && !current.walls[1]) {
-                    var right = grid[index(i+1, j)];
-                    if (right) {
-                        current = right;
-                    }
-                } else if (current.movement[2] && !current.walls[2]) {
-                    var bottom = grid[index(i, j+1)];
-                    if (bottom) {
-                        current = bottom;
-                    }
-
-                } else if (current.movement[3] && !current.walls[3]) {
-                    var left = grid[index(i-1, j)];
-                    if (left) {
-                        current = left;
-                    }
-                }
-                current.movement = [false, false, false, false];
-                context.fillStyle='black';
-                context.fillRect(current.i*w, current.j*w, w, w);
-
-            }
-
-            path = [];
-            var temp = current;
-            path.push(temp);
-            while (temp.previous) {
-                path.push(temp.previous);
-                temp = temp.previous;
-            }
-
-            for (var i=0; i < path.length; i++) {
-                context.fillStyle ='blue';
-                context.fillRect(path[i].i*w, path[i].j*w, w, w);
-            
-
-                context.beginPath();
-                if (path[i].walls[0]) {
-                    context.moveTo(path[i].i*w, path[i].j*w);
-                    context.lineTo(path[i].i*w+w, path[i].j*w);
-                    context.stroke();
-                }
-                if (path[i].walls[1]) {
-                    context.moveTo(path[i].i*w+w, path[i].j*w);
-                    context.lineTo(path[i].i*w+w, path[i].j*w+w);
-                    context.stroke();
-                }
-                if (path[i].walls[2]) {
-                    context.moveTo(path[i].i*w+w, path[i].j*w+w);
-                    context.lineTo(path[i].i*w, path[i].j*w+w);
-                    context.stroke();
-                }
-                if (path[i].walls[3]) {
-                    context.moveTo(path[i].i*w, path[i].j*w+w);
-                    context.lineTo(path[i].i*w, path[i].j*w);
-                    context.stroke();
-                }
+                player_movement();
             }
 
         } else {
@@ -216,7 +155,37 @@
         }
     }
 
-    function Solve() {
+    function player_movement() {
+        var i = current.i
+        var j = current.j
+        if (current.movement[0] && !current.walls[0]) {
+            var top = grid[index(i, j-1)];
+            if (top) {
+                current = top;
+            }
+        } else if (current.movement[1] && !current.walls[1]) {
+            var right = grid[index(i+1, j)];
+            if (right) {
+                current = right;
+            }
+        } else if (current.movement[2] && !current.walls[2]) {
+            var bottom = grid[index(i, j+1)];
+            if (bottom) {
+                current = bottom;
+            }
+
+        } else if (current.movement[3] && !current.walls[3]) {
+            var left = grid[index(i-1, j)];
+            if (left) {
+                current = left;
+            }
+        }
+        current.movement = [false, false, false, false];
+        context.fillStyle='black';
+        context.fillRect(current.i*w, current.j*w, w, w);
+    }
+
+    function solve() {
         if (open_set.length > 0) {
             //open_set contains cells that need to be checked
             var winner = 0;
@@ -273,6 +242,46 @@
         } else {
             //open set is empty and end not reached
             console.log('No Solution');
+        }
+    }
+
+    function create_path() {
+        path = [];
+        var temp = current;
+        path.push(temp);
+        while (temp.previous) {
+            path.push(temp.previous);
+            temp = temp.previous;
+        }
+    }
+
+    function draw_path() {
+        for (var i=0; i < path.length; i++) {
+            context.fillStyle ='blue';
+            context.fillRect(path[i].i*w, path[i].j*w, w, w);
+        
+
+            context.beginPath();
+            if (path[i].walls[0]) {
+                context.moveTo(path[i].i*w, path[i].j*w);
+                context.lineTo(path[i].i*w+w, path[i].j*w);
+                context.stroke();
+            }
+            if (path[i].walls[1]) {
+                context.moveTo(path[i].i*w+w, path[i].j*w);
+                context.lineTo(path[i].i*w+w, path[i].j*w+w);
+                context.stroke();
+            }
+            if (path[i].walls[2]) {
+                context.moveTo(path[i].i*w+w, path[i].j*w+w);
+                context.lineTo(path[i].i*w, path[i].j*w+w);
+                context.stroke();
+            }
+            if (path[i].walls[3]) {
+                context.moveTo(path[i].i*w, path[i].j*w+w);
+                context.lineTo(path[i].i*w, path[i].j*w);
+                context.stroke();
+            }
         }
     }
 
